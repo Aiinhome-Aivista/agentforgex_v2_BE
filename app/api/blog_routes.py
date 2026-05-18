@@ -40,7 +40,7 @@ def list_blog_posts():
         return _err("limit and offset must be integers")
     try:
         items = blog_service.list_posts(limit=limit, offset=offset)
-        # Use request.host_url which includes scheme and host (e.g. http://127.0.0.1:3004/)
+        # Use request.host_url which includes scheme and host (e.g. http://127.0.0.1:3006/)
         base_url = request.host_url
         
         for item in items:
