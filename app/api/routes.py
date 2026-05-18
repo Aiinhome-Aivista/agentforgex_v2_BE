@@ -15,6 +15,7 @@ from app.api.web_search_routes import search_bp
 from app.api.captcha_routes import captcha_bp, register_auth_gate
 from app.api.blog_routes import blog_bp
 from app.api.admin_routes import admin_bp
+from app.api.technical_design_routes import technical_design_bp   # ⬅️ NEW
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ api_bp.register_blueprint(search_bp)
 api_bp.register_blueprint(captcha_bp)
 api_bp.register_blueprint(blog_bp)
 api_bp.register_blueprint(admin_bp)
+api_bp.register_blueprint(technical_design_bp)                    # ⬅️ NEW
 register_auth_gate(api_bp)
 
 ALLOWED_EXTENSIONS = {"pdf", "docx", "doc", "txt", "csv", "xlsx", "xls"}
@@ -67,7 +69,7 @@ def test_db():
 
 
 # ── Upload & Analyze ──────────────────────────────────────────────────────────
-@api_bp.route("/login",methods=['POST'])
+@api_bp.route("/login", methods=['POST'])
 def login():
     data = request.get_json()
     email = data["email"]
@@ -78,7 +80,7 @@ def login():
 
     # Email check
     sql = "SELECT * FROM users where email = %s"
-    cursor.execute(sql,(email,))
+    cursor.execute(sql, (email,))
     user = cursor.fetchone()
     if not user:
         return jsonify({
@@ -93,75 +95,21 @@ def login():
             "status": False,
             "statuscode": 401,
             "message": "Incorrect password"
-        })    
-
+        })
 
     cursor.close()
     conn.close()
 
     return jsonify({
-        "status":True,
-        "statuscode":200,
-        "message":"Login Successfully!!",
-        "data":{
+        "status": True,
+        "statuscode": 200,
+        "message": "Login Successfully!!",
+        "data": {
             "id": user["id"],
             "name": user["name"]
         }
     })
 
-
-
-# @api_bp.post("/analyze")
-# def analyze():
-#     """
-#     Accepts multipart/form-data with one or more files.
-#     Runs the full analysis pipeline and returns the result.
-#     """
-#     session_id = request.form.get("session_id")
-
-#     if not session_id:
-#         session_id = str(uuid.uuid4())
-
-#     if "files" not in request.files:
-#         return jsonify({"error": "No files provided"}), 400
-
-#     uploaded = request.files.getlist("files")
-#     if not uploaded:
-#         return jsonify({"error": "Empty file list"}), 400
-#     if len(uploaded) > MAX_FILES:
-#         return jsonify({"error": f"Maximum {MAX_FILES} files allowed"}), 400
-#     user_input = request.form.get("user_input", "").strip()
-
-#     file_data = []
-#     for f in uploaded:
-#         if not f.filename:
-#             continue
-#         if not allowed_file(f.filename):
-#             return jsonify({"error": f"File type not allowed: {f.filename}"}), 400
-
-#         file_bytes = f.read()
-#         size_mb = len(file_bytes) / (1024 * 1024)
-#         if size_mb > MAX_SIZE_MB:
-#             return jsonify({"error": f"File too large: {f.filename} ({size_mb:.1f}MB)"}), 400
-
-#         file_data.append((file_bytes, secure_filename(f.filename)))
-
-#     if not file_data:
-#         return jsonify({"error": "No valid files found"}), 400
-
-#     try:
-#         result = analysis_service.analyze(
-#             file_data,
-#             user_input=user_input,
-#             session_id=session_id
-#         )
-#         return jsonify(result.to_api()), 200
-#     except ValueError as e:
-#         logger.error(f"Analysis config error: {e}")
-#         return jsonify({"error": str(e)}), 400
-#     except Exception as e:
-#         logger.error(f"Analysis failed: {e}", exc_info=True)
-#         return jsonify({"error": "Analysis failed. Please try again."}), 500
 
 @api_bp.post("/analyze")
 def analyze():
@@ -274,18 +222,17 @@ def get_react_flow(_key: str):
     Returns the process data mapped specifically for the React Flow frontend.
     """
     try:
-        # Pass the _key value to your service
         flow_data = analysis_service.get_react_flow_data(_key)
-        
+
         if not flow_data.get("lanes") or not flow_data.get("flow"):
             return jsonify({"error": "No flow data"}), 404
-            
+
         return jsonify(flow_data)
     except Exception as e:
         logger.error(f"Get React flow error: {e}", exc_info=True)
         return jsonify({"error": "Could not fetch process flow data"}), 500
 
-    
+
 # ── RAG Chat ──────────────────────────────────────────────────────────────
 @api_bp.post("/chat")
 def chat():
@@ -307,8 +254,9 @@ def chat():
     return jsonify({
         "query": query,
         "answer": response,
-        "graph_url": graph_url   
+        "graph_url": graph_url
     })
+
 
 @api_bp.get("/suggestions/<suggestion_key>/architecture")
 def get_agent_architecture(suggestion_key: str):
@@ -342,4 +290,3 @@ def simulate(process_key):
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
